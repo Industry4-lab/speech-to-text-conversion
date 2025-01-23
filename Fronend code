@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speech Recognition App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: rgb(248, 245, 245);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    button {
+      padding: 10px;
+      background-color: #fbfcfb;
+      color: rgb(10, 1, 1);
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 150px; 
+    }
+    button:hover {
+      background-color: #555758;
+    }
+    .response {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Start Speaking for Speech Recognition</h1>
+    <button id="startRecording">Start Recording</button>
+    <p id="statusMessage">Click the button to start recording your voice.</p>
+
+    <div class="response" id="responseMessage"></div>
+  </div>
+
+  <script>
+    const startButton = document.getElementById('startRecording');
+    const statusMessage = document.getElementById('statusMessage');
+    const responseMessage = document.getElementById('responseMessage');
+
+    // Check if the browser supports the Web Speech API
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false; // To stop after one sentence
+      recognition.lang = 'en-US'; // Set language
+      recognition.interimResults = false; // We only want final results
+
+      startButton.addEventListener('click', () => {
+        recognition.start(); // Start recording
+        statusMessage.textContent = 'Listening...';
+      });
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        statusMessage.textContent = `You said: "${transcript}"`;
+
+        // Optionally, send the transcript to the server
+        // sendTranscriptToServer(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        statusMessage.textContent = `Error occurred in recognition: ${event.error}`;
+      };
+
+      recognition.onspeechend = () => {
+        recognition.stop();
+        statusMessage.textContent = 'Recording stopped.';
+      };
+
+    } else {
+      statusMessage.textContent = 'Sorry, your browser does not support Speech Recognition.';
+    }
+
+    // Example function to send the transcript to the server
+    async function sendTranscriptToServer(transcript) {
+      try {
+        const response = await fetch('/process_speech', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ speech_text: transcript })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+          responseMessage.innerHTML = `<p><strong>Success!</strong> ${result.message}</p>`;
+        } else {
+          responseMessage.innerHTML = `<p><strong>Error:</strong> ${result.error}</p>`;
+        }
+      } catch (error) {
+        responseMessage.innerHTML = `<p><strong>Error:</strong> Something went wrong. Please try again.</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
